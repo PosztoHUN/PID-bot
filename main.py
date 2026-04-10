@@ -262,12 +262,17 @@ async def pidkt8(ctx):
 async def pidt3today(ctx, date: str = None):
     day = date or datetime.now().strftime("%Y-%m-%d")
     veh_dir = "logs/veh"
+
+    if not os.path.exists(veh_dir):
+        return
+
     t3s = {}
 
     for fname in os.listdir(veh_dir):
         if not fname.endswith(".txt"):
             continue
-        reg = fname.replace(".txt","")
+
+        reg = fname.replace(".txt", "")
         if not is_t3(reg):
             continue
 
@@ -280,15 +285,17 @@ async def pidt3today(ctx, date: str = None):
                     t3s.setdefault(reg, []).append((ts, line_no, trip_id))
 
     if not t3s:
-        return await ctx.send(f"🚫 {day} napon nem közlekedett Tatra T3-as villamos.")
+        return
 
     out = [f"🚋 Tatra T3 – forgalomban ({day})"]
+
     for reg in sorted(t3s):
         first = min(t3s[reg], key=lambda x: x[0])
         last = max(t3s[reg], key=lambda x: x[0])
         out.append(f"{reg} — {first[0][11:16]} → {last[0][11:16]} (vonal {first[1]})")
 
     msg = "\n".join(out)
+
     for i in range(0, len(msg), 1900):
         await ctx.send(msg[i:i+1900])
         
