@@ -264,7 +264,7 @@ async def pidt3today(ctx, date: str = None):
     veh_dir = "logs/veh"
 
     if not os.path.exists(veh_dir):
-        return
+        return await ctx.send("❌ Hiányzik a logs/veh mappa (nincs log adat)")
 
     t3s = {}
 
@@ -276,23 +276,38 @@ async def pidt3today(ctx, date: str = None):
         if not is_t3(reg):
             continue
 
-        with open(os.path.join(veh_dir, fname), "r", encoding="utf-8") as f:
-            for line in f:
-                if line.startswith(day):
-                    ts = line.split(" - ")[0]
-                    trip_id = line.split("ID ")[1].split(" ")[0]
-                    line_no = line.split("Vonal ")[1].split(" ")[0]
+        file_path = os.path.join(veh_dir, fname)
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if not line.startswith(day):
+                        continue
+
+                    try:
+                        ts = line.split(" - ")[0]
+                        trip_id = line.split("ID ")[1].split(" ")[0]
+                        line_no = line.split("Vonal ")[1].split(" ")[0]
+                    except IndexError:
+                        continue
+
                     t3s.setdefault(reg, []).append((ts, line_no, trip_id))
 
+        except Exception:
+            continue
+
     if not t3s:
-        return
+        return await ctx.send(f"🚫 Nincs Tatra T3 adat erre a napra: {day}")
 
     out = [f"🚋 Tatra T3 – forgalomban ({day})"]
 
     for reg in sorted(t3s):
         first = min(t3s[reg], key=lambda x: x[0])
         last = max(t3s[reg], key=lambda x: x[0])
-        out.append(f"{reg} — {first[0][11:16]} → {last[0][11:16]} (vonal {first[1]})")
+
+        out.append(
+            f"{reg} — {first[0][11:16]} → {last[0][11:16]} (vonal {first[1]})"
+        )
 
     msg = "\n".join(out)
 
