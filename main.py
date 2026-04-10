@@ -730,9 +730,6 @@ async def pid15t(ctx):
 
             num = int(vehicle_label)
 
-            if not is_t3(num):
-                continue
-
             if num in is_15T0():
                 subtype = "Škoda 15T0 ForCity Alfa Praha"
             elif num in is_15T1():
