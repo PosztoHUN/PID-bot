@@ -714,10 +714,10 @@ async def pid15t(ctx):
         try:
             async with session.get(API_URL, headers=headers, timeout=10) as r:
                 if r.status != 200:
-                    return
+                    return await ctx.send(f"❌ API hiba: {r.status}")
                 data = await r.json()
         except:
-            return
+            return await ctx.send("❌ API lekérés hiba")
 
         for trip in data.get("trips", []):
 
@@ -730,25 +730,26 @@ async def pid15t(ctx):
 
             num = int(vehicle_label)
 
-            if num in is_15T0(vehicle_label):
+            # 🔥 HELYES HASZNÁLAT
+            if is_15T0(num):
                 subtype = "Škoda 15T0 ForCity Alfa Praha"
-            elif num in is_15T1(vehicle_label):
+            elif is_15T1(num):
                 subtype = "Škoda 15T1 ForCity Alfa Praha"
-            elif num in is_15T2(vehicle_label):
+            elif is_15T2(num):
                 subtype = "Škoda 15T2 ForCity Alfa Praha"
-            elif num in is_15T3(vehicle_label):
+            elif is_15T3(num):
                 subtype = "Škoda 15T3 ForCity Alfa Praha"
-            elif num in is_15T4(vehicle_label):
+            elif is_15T4(num):
                 subtype = "Škoda 15T4 ForCity Alfa Praha"
-            elif num in is_15T5(vehicle_label):
+            elif is_15T5(num):
                 subtype = "Škoda 15T5 ForCity Alfa Praha"
-            elif num in is_15T6(vehicle_label):
+            elif is_15T6(num):
                 subtype = "Škoda 15T6 ForCity Alfa Praha"
-            elif num in is_15T7(vehicle_label):
+            elif is_15T7(num):
                 subtype = "Škoda 15T7 ForCity Alfa Praha"
-            elif num in is_15T1A(vehicle_label):
+            elif is_15T1A(num):
                 subtype = "Škoda 15T1A ForCity Alfa Praha"
-            elif num in is_15T3B(vehicle_label):
+            elif is_15T3B(num):
                 subtype = "Škoda 15T3B ForCity Alfa Praha"
             else:
                 subtype = "Škoda 15T ForCity Alfa Praha"
@@ -761,34 +762,25 @@ async def pid15t(ctx):
             }
 
     if not active:
-        return
+        return await ctx.send("🚫 Nincs aktív Škoda 15T villamos.")
 
-    MAX_FIELDS = 20  # biztonságos limit
+    MAX_FIELDS = 20
     embeds = []
     embed = discord.Embed(title="🚋 Škoda 15T villamosok", color=0xff0000)
-    field_count = 0
 
     for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
-        value = (
-            f"Altípus: {info['subtype']}\n"
-            f"Vonal: {info['line']}\n"
-            f"Forgalmi: {info['trip']}\n"
-            f"Késés: {info['delay']} mp"
+        embed.add_field(
+            name=reg,
+            value=(
+                f"Altípus: {info['subtype']}\n"
+                f"Vonal: {info['line']}\n"
+                f"Forgalmi: {info['trip']}\n"
+                f"Késés: {info['delay']} mp"
+            ),
+            inline=False
         )
 
-        embed.add_field(name=reg, value=value, inline=False)
-        field_count += 1
-
-        if field_count >= MAX_FIELDS:
-            embeds.append(embed)
-            embed = discord.Embed(title="🚋 Škoda 15T (folytatás)", color=0xff0000)
-            field_count = 0
-
-    if embed.fields:
-        embeds.append(embed)
-
-    for e in embeds:
-        await ctx.send(embed=e)
+    await ctx.send(embed=embed)
 
 # =======================
 # BOT INDÍTÁS
