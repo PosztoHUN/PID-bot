@@ -341,7 +341,10 @@ async def pidt3(ctx):
     if not active:
         return
 
+    MAX_FIELDS = 20  # biztonságos limit
+    embeds = []
     embed = discord.Embed(title="🚋 Tatra T3 villamosok", color=0xff0000)
+    field_count = 0
 
     for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
         value = (
@@ -352,8 +355,18 @@ async def pidt3(ctx):
         )
 
         embed.add_field(name=reg, value=value, inline=False)
+        field_count += 1
 
-    await ctx.send(embed=embed)
+        if field_count >= MAX_FIELDS:
+            embeds.append(embed)
+            embed = discord.Embed(title="🚋 Tatra T3 (folytatás)", color=0xff0000)
+            field_count = 0
+
+    if embed.fields:
+        embeds.append(embed)
+
+    for e in embeds:
+        await ctx.send(embed=e)
         
 @bot.command()
 async def nosztalgia(ctx):
@@ -426,7 +439,6 @@ async def nosztalgia(ctx):
         embed.add_field(name=reg, value=value, inline=False)
 
     await ctx.send(embed=embed)
-
 
 # =======================
 # BOT INDÍTÁS
