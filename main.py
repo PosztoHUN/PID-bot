@@ -232,7 +232,10 @@ async def pidkt8(ctx):
     if not active:
         return
 
+    MAX_FIELDS = 20
+    embeds = []
     embed = discord.Embed(title="🚋 KT8 villamosok", color=0xff0000)
+    field_count = 0
 
     for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
         value = (
@@ -245,8 +248,18 @@ async def pidkt8(ctx):
             value += "\n*🛠️ ex. Miskolc*"
 
         embed.add_field(name=reg, value=value, inline=False)
+        field_count += 1
 
-    await ctx.send(embed=embed)
+        if field_count >= MAX_FIELDS:
+            embeds.append(embed)
+            embed = discord.Embed(title="🚋 KT8 villamosok (folytatás)", color=0xff0000)
+            field_count = 0
+
+    if embed.fields:
+        embeds.append(embed)
+
+    for e in embeds:
+        await ctx.send(embed=e)
 
 @bot.command()
 async def pidt3today(ctx, date: str = None):
@@ -396,23 +409,23 @@ async def nosztalgia(ctx):
             subtype = None
 
             if is_t1_nosztalgia(num):
-                subtype = "Tatra T1 *nosztalgia*"
+                subtype = "Tatra T1"
             elif is_t2_nosztalgia(num):
-                subtype = "Tatra T2 *nosztalgia*"
+                subtype = "Tatra T2"
             elif is_t4_nosztalgia(num):
-                subtype = "Tatra T4 *nosztalgia*"
+                subtype = "Tatra T4"
             elif is_t6a5_nosztalgia(num):
-                subtype = "Tatra T6A5 *nosztalgia*"
+                subtype = "Tatra T6A5"
             elif is_k2_nosztalgia(num):
-                subtype = "Tatra K2 *nosztalgia*"
+                subtype = "Tatra K2"
             elif num in fill_tatra_t3_nosztalgia():
-                subtype = "Tatra T3 *nosztalgia*"
+                subtype = "Tatra T3"
             elif num in fill_tatra_t3su_nosztalgia():
-                subtype = "Tatra T3SU *nosztalgia*"
+                subtype = "Tatra T3SU"
             elif num in fill_tatra_t3sucs_nosztalgia():
-                subtype = "Tatra T3SUCS *nosztalgia*"
+                subtype = "Tatra T3SUCS"
             elif num in fill_tatra_t3m_nosztalgia():
-                subtype = "Tatra T3M *nosztalgia*"
+                subtype = "Tatra T3M"
             else:
                 continue
 
@@ -426,7 +439,10 @@ async def nosztalgia(ctx):
     if not active:
         return
 
+    MAX_FIELDS = 20
+    embeds = []
     embed = discord.Embed(title="🚋 Nosztalgia Tatra villamosok", color=0xffa500)
+    field_count = 0
 
     for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
         value = (
@@ -437,8 +453,18 @@ async def nosztalgia(ctx):
         )
 
         embed.add_field(name=reg, value=value, inline=False)
+        field_count += 1
 
-    await ctx.send(embed=embed)
+        if field_count >= MAX_FIELDS:
+            embeds.append(embed)
+            embed = discord.Embed(title="🚋 Nosztalgia (folytatás)", color=0xffa500)
+            field_count = 0
+
+    if embed.fields:
+        embeds.append(embed)
+
+    for e in embeds:
+        await ctx.send(embed=e)
 
 # =======================
 # BOT INDÍTÁS
