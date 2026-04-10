@@ -11,7 +11,7 @@ from datetime import datetime
 TOKEN = os.getenv("TOKEN")
 
 PID_API_KEY = os.getenv("PID_API_KEY")
-API_URL = "https://api.golemio.cz/v2/vehiclepositions"
+API_URL = "https://mapa.pid.cz/getData.php"
 
 # =======================
 # SEGÉDFÜGGVÉNYEK
@@ -204,26 +204,17 @@ async def pidkt8(ctx):
         try:
             async with session.get(API_URL, headers=headers, timeout=10) as r:
                 if r.status != 200:
-                    return await ctx.send(f"❌ Hiba az API lekéréskor: {r.status}")
+                    return
                 data = await r.json()
-        except Exception as e:
-            return await ctx.send(f"❌ Hiba az API lekéréskor: {e}")
+        except:
+            return
 
-        features = data.get("features", [])
+        for trip in data.get("trips", []):
 
-        for feature in features:
-            trip = feature.get("properties", {}).get("trip")
-            if not trip:
+            if trip.get("routeType") != 0:
                 continue
 
-            vehicle_type = trip.get("vehicle_type")
-            if not vehicle_type:
-                continue
-
-            if vehicle_type.get("description_en", "").lower() != "tram":
-                continue
-
-            vehicle_label = str(trip.get("vehicle_registration_number", "")).strip()
+            vehicle_label = str(trip.get("vehicle", "")).strip()
             if not vehicle_label.isdigit():
                 continue
 
@@ -232,20 +223,23 @@ async def pidkt8(ctx):
             if not is_kt8(num):
                 continue
 
-            gtfs = trip.get("gtfs", {})
             active[vehicle_label] = {
-                "line": gtfs.get("route_short_name", "Ismeretlen"),
-                "dest": gtfs.get("trip_headsign", "Ismeretlen"),
-                "trip": trip.get("sequence_id", "Unknown")
+                "line": trip.get("route", "Ismeretlen"),
+                "trip": trip.get("tripId", "Unknown"),
+                "delay": trip.get("delay", 0)
             }
 
     if not active:
-        return await ctx.send("🚫 Nincs aktív Tatra KT8D5R.N2P villamos.")
+        return
 
-    embed = discord.Embed(title="🚋 Aktív Tatra KT8D5R.N2P villamosok", color=0xff0000)
+    embed = discord.Embed(title="🚋 KT8 villamosok", color=0xff0000)
 
     for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
-        value = f"Vonal: {info['line']}\nForgalmi: {info['trip']}\nCél: {info['dest']}"
+        value = (
+            f"Vonal: {info['line']}\n"
+            f"Forgalmi: {info['trip']}\n"
+            f"Késés: {info['delay']} mp"
+        )
 
         if 9099 <= int(reg) <= 9110:
             value += "\n*🛠️ ex. Miskolc*"
@@ -299,26 +293,17 @@ async def pidt3(ctx):
         try:
             async with session.get(API_URL, headers=headers, timeout=10) as r:
                 if r.status != 200:
-                    return await ctx.send(f"❌ Hiba az API lekéréskor: {r.status}")
+                    return
                 data = await r.json()
-        except Exception as e:
-            return await ctx.send(f"❌ Hiba az API lekéréskor: {e}")
+        except:
+            return
 
-        features = data.get("features", [])
+        for trip in data.get("trips", []):
 
-        for feature in features:
-            trip = feature.get("properties", {}).get("trip")
-            if not trip:
+            if trip.get("routeType") != 0:
                 continue
 
-            vehicle_type = trip.get("vehicle_type")
-            if not vehicle_type:
-                continue
-
-            if vehicle_type.get("description_en", "").lower() != "tram":
-                continue
-
-            vehicle_label = str(trip.get("vehicle_registration_number", "")).strip()
+            vehicle_label = str(trip.get("vehicle", "")).strip()
             if not vehicle_label.isdigit():
                 continue
 
@@ -327,7 +312,6 @@ async def pidt3(ctx):
             if not is_t3(num):
                 continue
 
-            # Altípus
             if num in fill_tatra_t3m2_dvc():
                 subtype = "Tatra T3M2-DVC"
             elif num in fill_tatra_t3r_pv():
@@ -347,26 +331,24 @@ async def pidt3(ctx):
             else:
                 subtype = "T3 (ismeretlen)"
 
-            gtfs = trip.get("gtfs", {})
-
             active[vehicle_label] = {
-                "line": gtfs.get("route_short_name", "Ismeretlen"),
-                "dest": gtfs.get("trip_headsign", "Ismeretlen"),
-                "trip": trip.get("sequence_id", "Unknown"),
+                "line": trip.get("route", "Ismeretlen"),
+                "trip": trip.get("tripId", "Unknown"),
+                "delay": trip.get("delay", 0),
                 "subtype": subtype
             }
 
     if not active:
-        return await ctx.send("🚫 Nincs aktív Tatra T3 villamos.")
+        return
 
-    embed = discord.Embed(title="🚋 Aktív Tatra T3 villamosok", color=0xff0000)
+    embed = discord.Embed(title="🚋 Tatra T3 villamosok", color=0xff0000)
 
     for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
         value = (
             f"Altípus: {info['subtype']}\n"
             f"Vonal: {info['line']}\n"
             f"Forgalmi: {info['trip']}\n"
-            f"Cél: {info['dest']}"
+            f"Késés: {info['delay']} mp"
         )
 
         embed.add_field(name=reg, value=value, inline=False)
@@ -382,24 +364,17 @@ async def nosztalgia(ctx):
         try:
             async with session.get(API_URL, headers=headers, timeout=10) as r:
                 if r.status != 200:
-                    return await ctx.send(f"❌ Hiba az API lekéréskor: {r.status}")
+                    return
                 data = await r.json()
-        except Exception as e:
-            return await ctx.send(f"❌ Hiba az API lekéréskor: {e}")
+        except:
+            return
 
-        for feature in data.get("features", []):
-            trip = feature.get("properties", {}).get("trip")
-            if not trip:
+        for trip in data.get("trips", []):
+
+            if trip.get("routeType") != 0:
                 continue
 
-            vehicle_type = trip.get("vehicle_type")
-            if not vehicle_type:
-                continue
-
-            if vehicle_type.get("description_en", "").lower() != "tram":
-                continue
-
-            vehicle_label = str(trip.get("vehicle_registration_number", "")).strip()
+            vehicle_label = str(trip.get("vehicle", "")).strip()
             if not vehicle_label.isdigit():
                 continue
 
@@ -428,17 +403,15 @@ async def nosztalgia(ctx):
             else:
                 continue
 
-            gtfs = trip.get("gtfs", {})
-
             active[vehicle_label] = {
-                "line": gtfs.get("route_short_name", "Ismeretlen"),
-                "dest": gtfs.get("trip_headsign", "Ismeretlen"),
-                "trip": trip.get("sequence_id", "Unknown"),
+                "line": trip.get("route", "Ismeretlen"),
+                "trip": trip.get("tripId", "Unknown"),
+                "delay": trip.get("delay", 0),
                 "subtype": subtype
             }
 
     if not active:
-        return await ctx.send("🚫 Jelenleg nincs aktív nosztalgia Tatra villamos.")
+        return
 
     embed = discord.Embed(title="🚋 Nosztalgia Tatra villamosok", color=0xffa500)
 
@@ -447,7 +420,7 @@ async def nosztalgia(ctx):
             f"Altípus: {info['subtype']}\n"
             f"Vonal: {info['line']}\n"
             f"Forgalmi: {info['trip']}\n"
-            f"Cél: {info['dest']}"
+            f"Késés: {info['delay']} mp"
         )
 
         embed.add_field(name=reg, value=value, inline=False)
