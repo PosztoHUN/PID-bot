@@ -121,6 +121,13 @@ def is_k2_nosztalgia(vehicle_registration_number):
         return 6999 <= n <= 7000
     except:
         return False
+    
+def is_14t(vehicle_registration_number):
+    try:
+        n = int(vehicle_registration_number)
+        return 9111 <= n <= 9171
+    except:
+        return False
 
 # =======================
 # DISCORD BOT INIT
@@ -231,7 +238,7 @@ async def pidkt8(ctx):
 
     MAX_FIELDS = 20
     embeds = []
-    embed = discord.Embed(title="🚋 KT8 villamosok", color=0xff0000)
+    embed = discord.Embed(title="🚋 KT8D5R.N2P villamosok", color=0xff0000)
     field_count = 0
 
     for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
@@ -249,7 +256,7 @@ async def pidkt8(ctx):
 
         if field_count >= MAX_FIELDS:
             embeds.append(embed)
-            embed = discord.Embed(title="🚋 KT8 villamosok (folytatás)", color=0xff0000)
+            embed = discord.Embed(title="🚋 KT8D5R.N2P villamosok (folytatás)", color=0xff0000)
             field_count = 0
 
     if embed.fields:
@@ -477,6 +484,76 @@ async def nosztalgia(ctx):
         if field_count >= MAX_FIELDS:
             embeds.append(embed)
             embed = discord.Embed(title="🚋 Nosztalgia (folytatás)", color=0xffa500)
+            field_count = 0
+
+    if embed.fields:
+        embeds.append(embed)
+
+    for e in embeds:
+        await ctx.send(embed=e)
+        
+# =======================
+# Skoda 14T
+# =======================
+
+@bot.command()
+async def pid14t(ctx):
+    active = {}
+    headers = {"X-Access-Token": PID_API_KEY}
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(API_URL, headers=headers, timeout=10) as r:
+                if r.status != 200:
+                    return
+                data = await r.json()
+        except:
+            return
+
+        for trip in data.get("trips", []):
+
+            if trip.get("routeType") != 0:
+                continue
+
+            vehicle_label = str(trip.get("vehicle", "")).strip()
+            if not vehicle_label.isdigit():
+                continue
+
+            num = int(vehicle_label)
+
+            if not is_14t(num):
+                continue
+
+            active[vehicle_label] = {
+                "line": trip.get("route", "Ismeretlen"),
+                "trip": trip.get("tripId", "Unknown"),
+                "delay": trip.get("delay", 0)
+            }
+
+    if not active:
+        return
+
+    MAX_FIELDS = 20
+    embeds = []
+    embed = discord.Embed(title="🚋 Škoda 14T Elektra", color=0xff0000)
+    field_count = 0
+
+    for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
+        value = (
+            f"Vonal: {info['line']}\n"
+            f"Forgalmi: {info['trip']}\n"
+            f"Késés: {info['delay']} mp"
+        )
+
+        if 9099 <= int(reg) <= 9110:
+            value += "\n*🛠️ ex. Miskolc*"
+
+        embed.add_field(name=reg, value=value, inline=False)
+        field_count += 1
+
+        if field_count >= MAX_FIELDS:
+            embeds.append(embed)
+            embed = discord.Embed(title="🚋 Škoda 14T Elektra (folytatás)", color=0xff0000)
             field_count = 0
 
     if embed.fields:
