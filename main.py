@@ -730,7 +730,6 @@ async def pid15t(ctx):
 
             num = int(vehicle_label)
 
-            # 🔥 HELYES HASZNÁLAT
             if is_15T0(num):
                 subtype = "Škoda 15T0 ForCity Alfa Praha"
             elif is_15T1(num):
@@ -767,20 +766,35 @@ async def pid15t(ctx):
     MAX_FIELDS = 20
     embeds = []
     embed = discord.Embed(title="🚋 Škoda 15T villamosok", color=0xff0000)
+    field_count = 0
 
     for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
-        embed.add_field(
-            name=reg,
-            value=(
-                f"Altípus: {info['subtype']}\n"
-                f"Vonal: {info['line']}\n"
-                f"Forgalmi: {info['trip']}\n"
-                f"Késés: {info['delay']} mp"
-            ),
-            inline=False
+
+        value = (
+            f"Altípus: {info['subtype']}\n"
+            f"Vonal: {info['line']}\n"
+            f"Forgalmi: {info['trip']}\n"
+            f"Késés: {info['delay']} mp"
         )
 
-    await ctx.send(embed=embed)
+        # 🔥 LIMIT VÉDELEM
+        if len(value) > 900:
+            value = value[:900] + "..."
+
+        embed.add_field(name=reg, value=value, inline=False)
+        field_count += 1
+
+        # 🔥 EMBED SPLIT
+        if field_count >= MAX_FIELDS:
+            embeds.append(embed)
+            embed = discord.Embed(title="🚋 Škoda 15T (folytatás)", color=0xff0000)
+            field_count = 0
+
+    if embed.fields:
+        embeds.append(embed)
+
+    for e in embeds:
+        await ctx.send(embed=e)
 
 # =======================
 # BOT INDÍTÁS
