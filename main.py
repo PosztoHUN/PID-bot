@@ -751,7 +751,7 @@ async def pid15t(ctx):
             elif is_15T3B(num):
                 subtype = "Škoda 15T3B ForCity Alfa Praha"
             else:
-                subtype = "Škoda 15T ForCity Alfa Praha"
+                continue
 
             active[vehicle_label] = {
                 "line": trip.get("route", "Ismeretlen"),
