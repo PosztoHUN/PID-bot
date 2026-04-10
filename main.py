@@ -730,25 +730,25 @@ async def pid15t(ctx):
 
             num = int(vehicle_label)
 
-            if num in is_15T0():
+            if num in is_15T0(vehicle_label):
                 subtype = "Škoda 15T0 ForCity Alfa Praha"
-            elif num in is_15T1():
+            elif num in is_15T1(vehicle_label):
                 subtype = "Škoda 15T1 ForCity Alfa Praha"
-            elif num in is_15T2():
+            elif num in is_15T2(vehicle_label):
                 subtype = "Škoda 15T2 ForCity Alfa Praha"
-            elif num in is_15T3():
+            elif num in is_15T3(vehicle_label):
                 subtype = "Škoda 15T3 ForCity Alfa Praha"
-            elif num in is_15T4():
+            elif num in is_15T4(vehicle_label):
                 subtype = "Škoda 15T4 ForCity Alfa Praha"
-            elif num in is_15T5():
+            elif num in is_15T5(vehicle_label):
                 subtype = "Škoda 15T5 ForCity Alfa Praha"
-            elif num in is_15T6():
+            elif num in is_15T6(vehicle_label):
                 subtype = "Škoda 15T6 ForCity Alfa Praha"
-            elif num in is_15T7():
+            elif num in is_15T7(vehicle_label):
                 subtype = "Škoda 15T7 ForCity Alfa Praha"
-            elif num in is_15T1A():
+            elif num in is_15T1A(vehicle_label):
                 subtype = "Škoda 15T1A ForCity Alfa Praha"
-            elif num in is_15T3B():
+            elif num in is_15T3B(vehicle_label):
                 subtype = "Škoda 15T3B ForCity Alfa Praha"
             else:
                 subtype = "Škoda 15T ForCity Alfa Praha"
