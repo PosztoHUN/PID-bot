@@ -210,70 +210,49 @@ async def pidkt8(ctx):
             return await ctx.send(f"❌ Hiba az API lekéréskor: {e}")
 
         features = data.get("features", [])
-        for feature in features:
-            trip = feature.get("properties", {}).get("trip", {})
-            vehicle_type = trip.get("vehicle_type")
 
-            # csak villamosok, vehicle_type nem None
-            if not vehicle_type or vehicle_type.get("description_en") != "tram":
+        for feature in features:
+            trip = feature.get("properties", {}).get("trip")
+            if not trip:
                 continue
 
-            vehicle_registration_number = trip.get("vehicle_registration_number", "")
-            if not is_kt8(vehicle_registration_number):
+            vehicle_type = trip.get("vehicle_type")
+            if not vehicle_type:
+                continue
+
+            if vehicle_type.get("description_en", "").lower() != "tram":
+                continue
+
+            vehicle_label = str(trip.get("vehicle_registration_number", "")).strip()
+            if not vehicle_label.isdigit():
+                continue
+
+            num = int(vehicle_label)
+
+            if not is_kt8(num):
                 continue
 
             gtfs = trip.get("gtfs", {})
-            line = gtfs.get("route_short_name", "Ismeretlen")
-            dest = gtfs.get("trip_headsign", "Ismeretlen")
-            sequence_id = trip.get("sequence_id", "Unknown")
-
-            # minden megfelelőt hozzáadunk
-            active[vehicle_registration_number] = {
-                "line": line,
-                "dest": dest,
-                "trip": sequence_id
+            active[vehicle_label] = {
+                "line": gtfs.get("route_short_name", "Ismeretlen"),
+                "dest": gtfs.get("trip_headsign", "Ismeretlen"),
+                "trip": trip.get("sequence_id", "Unknown")
             }
 
     if not active:
         return await ctx.send("🚫 Nincs aktív Tatra KT8D5R.N2P villamos.")
 
-    # Discord embedek küldése
-    MAX_FIELDS_PER_EMBED = 20
-    embeds = []
     embed = discord.Embed(title="🚋 Aktív Tatra KT8D5R.N2P villamosok", color=0xff0000)
-    field_count = 0
 
     for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
-        value_text = (
-            f"Vonal: {info['line']}\n"
-            f"Forgalmi: {info['trip']}\n"
-            f"Cél: {info['dest']}"
-        )
+        value = f"Vonal: {info['line']}\nForgalmi: {info['trip']}\nCél: {info['dest']}"
 
-        # Ha 9099–9110 közötti jármű, jelezzük
-        try:
-            reg_num = int(reg)
-            if 9099 <= reg_num <= 9110:
-                value_text += "\n*🛠️ ex. Miskolc*"
-        except ValueError:
-            pass
+        if 9099 <= int(reg) <= 9110:
+            value += "\n*🛠️ ex. Miskolc*"
 
-        embed.add_field(name=reg, value=value_text, inline=False)
-        field_count += 1
+        embed.add_field(name=reg, value=value, inline=False)
 
-        # Ha elérjük a maximum mező számot, új embed
-        if field_count >= MAX_FIELDS_PER_EMBED:
-            embeds.append(embed)
-            embed = discord.Embed(title="🚋 Aktív Tatra KT8D5R.N2P villamosok (folytatás)", color=0xff0000)
-            field_count = 0
-
-    # Utolsó embed hozzáadása, ha van benne mező
-    if embed.fields:
-        embeds.append(embed)
-
-    # Küldés
-    for e in embeds:
-        await ctx.send(embed=e)
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def pidt3today(ctx, date: str = None):
@@ -314,7 +293,7 @@ async def pidt3today(ctx, date: str = None):
 @bot.command()
 async def pidt3(ctx):
     active = {}
-    headers = {"X-Access-Token": PID_API_KEY}  # fontos: header a 401 elkerülésére
+    headers = {"X-Access-Token": PID_API_KEY}
 
     async with aiohttp.ClientSession() as session:
         try:
@@ -326,29 +305,29 @@ async def pidt3(ctx):
             return await ctx.send(f"❌ Hiba az API lekéréskor: {e}")
 
         features = data.get("features", [])
+
         for feature in features:
-            trip = feature.get("properties", {}).get("trip", {})
+            trip = feature.get("properties", {}).get("trip")
+            if not trip:
+                continue
+
             vehicle_type = trip.get("vehicle_type")
-
-            # csak villamos, vehicle_type nem None
-            if not vehicle_type or vehicle_type.get("description_en") != "tram":
+            if not vehicle_type:
                 continue
 
-            vehicle_label = trip.get("vehicle_registration_number", "")
-            if not is_t3(vehicle_label):
+            if vehicle_type.get("description_en", "").lower() != "tram":
                 continue
 
-            gtfs = trip.get("gtfs", {})
-            line = gtfs.get("route_short_name", "Ismeretlen")
-            dest = gtfs.get("trip_headsign", "Ismeretlen")
-            sequence_id = trip.get("sequence_id", "Unknown")
+            vehicle_label = str(trip.get("vehicle_registration_number", "")).strip()
+            if not vehicle_label.isdigit():
+                continue
 
-            # Altípus meghatározása
-            try:
-                num = int(vehicle_label)
-            except ValueError:
-                num = 0
+            num = int(vehicle_label)
 
+            if not is_t3(num):
+                continue
+
+            # Altípus
             if num in fill_tatra_t3m2_dvc():
                 subtype = "Tatra T3M2-DVC"
             elif num in fill_tatra_t3r_pv():
@@ -368,47 +347,34 @@ async def pidt3(ctx):
             else:
                 subtype = "T3 (ismeretlen)"
 
-            # minden megfelelőt hozzáadunk
+            gtfs = trip.get("gtfs", {})
+
             active[vehicle_label] = {
-                "line": line,
-                "dest": dest,
-                "trip": sequence_id,
+                "line": gtfs.get("route_short_name", "Ismeretlen"),
+                "dest": gtfs.get("trip_headsign", "Ismeretlen"),
+                "trip": trip.get("sequence_id", "Unknown"),
                 "subtype": subtype
             }
 
     if not active:
         return await ctx.send("🚫 Nincs aktív Tatra T3 villamos.")
 
-    # Discord embedek létrehozása
-    MAX_FIELDS = 20
-    embeds = []
     embed = discord.Embed(title="🚋 Aktív Tatra T3 villamosok", color=0xff0000)
-    field_count = 0
 
     for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
-        value_text = (
+        value = (
             f"Altípus: {info['subtype']}\n"
             f"Vonal: {info['line']}\n"
             f"Forgalmi: {info['trip']}\n"
             f"Cél: {info['dest']}"
         )
 
-        embed.add_field(name=reg, value=value_text, inline=False)
-        field_count += 1
+        embed.add_field(name=reg, value=value, inline=False)
 
-        if field_count >= MAX_FIELDS:
-            embeds.append(embed)
-            embed = discord.Embed(title="🚋 Aktív Tatra T3 villamosok (folytatás)", color=0xff0000)
-            field_count = 0
-
-    if embed.fields:
-        embeds.append(embed)
-
-    for e in embeds:
-        await ctx.send(embed=e)
+    await ctx.send(embed=embed)
         
 @bot.command()
-async def pidnosztalgiatatra(ctx):
+async def nosztalgia(ctx):
     active = {}
     headers = {"X-Access-Token": PID_API_KEY}
 
@@ -421,21 +387,26 @@ async def pidnosztalgiatatra(ctx):
         except Exception as e:
             return await ctx.send(f"❌ Hiba az API lekéréskor: {e}")
 
-        features = data.get("features", [])
-        for feature in features:
-            trip = feature.get("properties", {}).get("trip", {})
-            vehicle_type = trip.get("vehicle_type")
-            if not vehicle_type or vehicle_type.get("description_en") != "tram":
+        for feature in data.get("features", []):
+            trip = feature.get("properties", {}).get("trip")
+            if not trip:
                 continue
 
-            vehicle_label = trip.get("vehicle_registration_number", "")
-            try:
-                num = int(vehicle_label)
-            except ValueError:
+            vehicle_type = trip.get("vehicle_type")
+            if not vehicle_type:
                 continue
+
+            if vehicle_type.get("description_en", "").lower() != "tram":
+                continue
+
+            vehicle_label = str(trip.get("vehicle_registration_number", "")).strip()
+            if not vehicle_label.isdigit():
+                continue
+
+            num = int(vehicle_label)
 
             subtype = None
-            # Nosztalgia típusok
+
             if is_t1_nosztalgia(num):
                 subtype = "Tatra T1 *nosztalgia*"
             elif is_t2_nosztalgia(num):
@@ -455,49 +426,33 @@ async def pidnosztalgiatatra(ctx):
             elif num in fill_tatra_t3m_nosztalgia():
                 subtype = "Tatra T3M *nosztalgia*"
             else:
-                continue  # nem nosztalgia
+                continue
 
             gtfs = trip.get("gtfs", {})
-            line = gtfs.get("route_short_name", "Ismeretlen")
-            dest = gtfs.get("trip_headsign", "Ismeretlen")
-            sequence_id = trip.get("sequence_id", "Unknown")
 
             active[vehicle_label] = {
-                "line": line,
-                "dest": dest,
-                "trip": sequence_id,
+                "line": gtfs.get("route_short_name", "Ismeretlen"),
+                "dest": gtfs.get("trip_headsign", "Ismeretlen"),
+                "trip": trip.get("sequence_id", "Unknown"),
                 "subtype": subtype
             }
 
     if not active:
         return await ctx.send("🚫 Jelenleg nincs aktív nosztalgia Tatra villamos.")
 
-    MAX_FIELDS = 20
-    embeds = []
-    embed = discord.Embed(title="🚋 Aktív nosztalgia Tatra villamosok", color=0xffa500)
-    field_count = 0
+    embed = discord.Embed(title="🚋 Nosztalgia Tatra villamosok", color=0xffa500)
 
     for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
-        value_text = (
+        value = (
             f"Altípus: {info['subtype']}\n"
             f"Vonal: {info['line']}\n"
             f"Forgalmi: {info['trip']}\n"
             f"Cél: {info['dest']}"
         )
 
-        embed.add_field(name=reg, value=value_text, inline=False)
-        field_count += 1
+        embed.add_field(name=reg, value=value, inline=False)
 
-        if field_count >= MAX_FIELDS:
-            embeds.append(embed)
-            embed = discord.Embed(title="🚋 Aktív nosztalgia Tatra villamosok (folytatás)", color=0xffa500)
-            field_count = 0
-
-    if embed.fields:
-        embeds.append(embed)
-
-    for e in embeds:
-        await ctx.send(embed=e)
+    await ctx.send(embed=embed)
 
 
 # =======================
