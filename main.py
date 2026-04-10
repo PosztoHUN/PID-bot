@@ -135,6 +135,76 @@ def is_52t(vehicle_registration_number):
         return 9501 <= n <= 9520
     except:
         return False
+    
+def is_15T0(vehicle_registration_number):
+    try:
+        n = int(vehicle_registration_number)
+        return 9200 <= n <= 9202
+    except:
+        return False
+    
+def is_15T1(vehicle_registration_number):
+    try:
+        n = int(vehicle_registration_number)
+        return 9203 <= n <= 9206 and 9208 <= n <= 9211
+    except:
+        return False
+    
+def is_15T1A(vehicle_registration_number):
+    try:
+        n = int(vehicle_registration_number)
+        return n == 9207
+    except:
+        return False
+    
+def is_15T2(vehicle_registration_number):
+    try:
+        n = int(vehicle_registration_number)
+        return 9212 <= n <= 9226
+    except:
+        return False
+    
+def is_15T3(vehicle_registration_number):
+    try:
+        n = int(vehicle_registration_number)
+        return 9227 <= n <= 9242 or 9244 <= n <= 9325
+    except:
+        return False
+    
+def is_15T3B(vehicle_registration_number):
+    try:
+        n = int(vehicle_registration_number)
+        return n == 9243
+    except:
+        return False
+    
+def is_15T4(vehicle_registration_number):
+    try:
+        n = int(vehicle_registration_number)
+        return 9326 <= n <= 9357
+    except:
+        return False
+    
+def is_15T5(vehicle_registration_number):
+    try:
+        n = int(vehicle_registration_number)
+        return 9358 <= n <= 9389
+    except:
+        return False
+    
+def is_15T6(vehicle_registration_number):
+    try:
+        n = int(vehicle_registration_number)
+        return 9390 <= n <= 9421
+    except:
+        return False
+    
+def is_15T7(vehicle_registration_number):
+    try:
+        n = int(vehicle_registration_number)
+        return 9422 <= n <= 9450
+    except:
+        return False
 
 # =======================
 # DISCORD BOT INIT
@@ -627,6 +697,94 @@ async def pid52t(ctx):
         if field_count >= MAX_FIELDS:
             embeds.append(embed)
             embed = discord.Embed(title="🚋 Škoda 52T ForCity Plus (folytatás)", color=0xff0000)
+            field_count = 0
+
+    if embed.fields:
+        embeds.append(embed)
+
+    for e in embeds:
+        await ctx.send(embed=e)
+        
+@bot.command()
+async def pid15t(ctx):
+    active = {}
+    headers = {"X-Access-Token": PID_API_KEY}
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(API_URL, headers=headers, timeout=10) as r:
+                if r.status != 200:
+                    return
+                data = await r.json()
+        except:
+            return
+
+        for trip in data.get("trips", []):
+
+            if trip.get("routeType") != 0:
+                continue
+
+            vehicle_label = str(trip.get("vehicle", "")).strip()
+            if not vehicle_label.isdigit():
+                continue
+
+            num = int(vehicle_label)
+
+            if not is_t3(num):
+                continue
+
+            if num in is_15T0():
+                subtype = "Škoda 15T0 ForCity Alfa Praha"
+            elif num in is_15T1():
+                subtype = "Škoda 15T1 ForCity Alfa Praha"
+            elif num in is_15T2():
+                subtype = "Škoda 15T2 ForCity Alfa Praha"
+            elif num in is_15T3():
+                subtype = "Škoda 15T3 ForCity Alfa Praha"
+            elif num in is_15T4():
+                subtype = "Škoda 15T4 ForCity Alfa Praha"
+            elif num in is_15T5():
+                subtype = "Škoda 15T5 ForCity Alfa Praha"
+            elif num in is_15T6():
+                subtype = "Škoda 15T6 ForCity Alfa Praha"
+            elif num in is_15T7():
+                subtype = "Škoda 15T7 ForCity Alfa Praha"
+            elif num in is_15T1A():
+                subtype = "Škoda 15T1A ForCity Alfa Praha"
+            elif num in is_15T3B():
+                subtype = "Škoda 15T3B ForCity Alfa Praha"
+            else:
+                subtype = "Škoda 15T ForCity Alfa Praha"
+
+            active[vehicle_label] = {
+                "line": trip.get("route", "Ismeretlen"),
+                "trip": trip.get("tripId", "Unknown"),
+                "delay": trip.get("delay", 0),
+                "subtype": subtype
+            }
+
+    if not active:
+        return
+
+    MAX_FIELDS = 20  # biztonságos limit
+    embeds = []
+    embed = discord.Embed(title="🚋 Škoda 15T villamosok", color=0xff0000)
+    field_count = 0
+
+    for reg, info in sorted(active.items(), key=lambda x: int(x[0])):
+        value = (
+            f"Altípus: {info['subtype']}\n"
+            f"Vonal: {info['line']}\n"
+            f"Forgalmi: {info['trip']}\n"
+            f"Késés: {info['delay']} mp"
+        )
+
+        embed.add_field(name=reg, value=value, inline=False)
+        field_count += 1
+
+        if field_count >= MAX_FIELDS:
+            embeds.append(embed)
+            embed = discord.Embed(title="🚋 Škoda 15T (folytatás)", color=0xff0000)
             field_count = 0
 
     if embed.fields:
